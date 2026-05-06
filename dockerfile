@@ -1,8 +1,10 @@
-/api/add_client:1  Failed to load resource: the server responded with a status of 500 ()
-(index):1 Uncaught (in promise) SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
-/api/add_client:1  Failed to load resource: the server responded with a status of 500 ()
-(index):1 Uncaught (in promise) SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
-(index):38  POST https://habvpn-server.onrender.com/api/add_client 500 (Internal Server Error)
-addClient @ (index):38
-onclick @ (index):25
-VM24:1 Uncaught (in promise) SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
+FROM ubuntu:22.04
+
+RUN apt update && apt install -y wireguard python3 python3-pip iptables iproute2
+RUN pip3 install flask requests
+
+COPY server.py /app/server.py
+COPY admin.html /app/admin.html
+WORKDIR /app
+
+CMD ["python3", "server.py"]

@@ -1,9 +1,25 @@
-import os, subprocess, requests, json
+import os, subprocess, json
 from flask import Flask, request, send_from_directory
 
 app = Flask(__name__)
 
-# Запускаем WireGuard
+# Генерируем ключи сервера при старте
+if not os.path.exists("/etc/wireguard/privatekey"):
+    subprocess.run("wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey", shell=True)
+
+SERVER_PRIVKEY = open("/etc/wireguard/privatekey").read().strip()
+SERVER_PUBKEY = open("/etc/wireguard/publickey").read().strip()
+
+# Создаём wg0.conf
+wg_conf = f"""[Interface]
+PrivateKey = {SERVER_PRIVKEY}
+Address = 10.0.0.1/24
+ListenPort = 51820
+
+"""
+with open("/etc/wireguard/wg0.conf", "w") as f:
+    f.write(wg_conf)
+
 os.system("wg-quick up wg0")
 
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "habvpn2025")
@@ -39,13 +55,16 @@ def add_client():
     clients[name] = {'pubkey': pubkey, 'privkey': privkey}
     save_clients(clients)
     
+    # Добавляем клиента в WireGuard
+    os.system(f"wg set wg0 peer {pubkey} allowed-ips 10.0.0.{len(clients) + 1}/32")
+    
     config = f"""[Interface]
 PrivateKey = {privkey}
 Address = 10.0.0.{len(clients) + 1}/24
 DNS = 1.1.1.1
 
 [Peer]
-PublicKey = SERVER_PUBKEY
+PublicKey = {SERVER_PUBKEY}
 Endpoint = habvpn-server.onrender.com:51820
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25

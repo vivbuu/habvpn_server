@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HabVPN Admin</title>
+    <style>
+        body { background: #0d1117; color: #e6e6e6; font-family: sans-serif; padding: 20px; }
+        h2 { color: #4CAF50; }
+        input, button { padding: 12px; margin: 5px; border-radius: 8px; border: none; }
+        input { background: #21262d; color: white; }
+        button { background: #4CAF50; color: white; cursor: pointer; }
+        .config { background: #161b22; padding: 15px; margin: 10px 0; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h2>HabVPN — Админ-панель</h2>
+    
+    <input id="pass" type="password" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+    
+    <div id="panel" style="display:none;">
+        <h3>Добавить друга</h3>
+        <input id="name" placeholder="Имя друга">
+        <button onclick="addClient()">Создать конфиг</button>
+        <div id="result"></div>
+        
+        <h3>Друзья</h3>
+        <div id="clients"></div>
+    </div>
+    
+    <script>
+        let pass = '';
+        function login() { pass = document.getElementById('pass').value; document.getElementById('panel').style.display = 'block'; }
+        
+        async function addClient() {
+            let name = document.getElementById('name').value;
+            let res = await fetch('/api/add_client', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, pass: pass })
+            });
+            let data = await res.json();
+            if (data.config) {
+                document.getElementById('result').innerHTML = '<div class="config">' + data.config + '</div><button onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent)">Копировать</button>';
+            } else {
+                document.getElementById('result').textContent = 'Ошибка: ' + (data.error || '');
+            }
+        }
+    </script>
+</body>
+</html>

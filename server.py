@@ -3,13 +3,10 @@ from flask import Flask, request, send_from_directory
 
 app = Flask(__name__)
 
-# Конфиг WireGuard
-WG_CONF = "/etc/wireguard/wg0.conf"
+# Запускаем WireGuard
+os.system("wg-quick up wg0")
 
-# Пароль для админ-панели
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "habvpn2025")
-
-# Хранилище клиентов
 CLIENTS_FILE = "clients.json"
 
 def load_clients():
@@ -35,7 +32,6 @@ def add_client():
     if password != ADMIN_PASS:
         return {'error': 'wrong password'}, 403
     
-    # Генерируем ключи
     privkey = subprocess.run(["wg", "genkey"], capture_output=True, text=True).stdout.strip()
     pubkey = subprocess.run(["wg", "pubkey"], input=privkey, capture_output=True, text=True).stdout.strip()
     
@@ -43,7 +39,6 @@ def add_client():
     clients[name] = {'pubkey': pubkey, 'privkey': privkey}
     save_clients(clients)
     
-    # Конфиг для клиента
     config = f"""[Interface]
 PrivateKey = {privkey}
 Address = 10.0.0.{len(clients) + 1}/24

@@ -10,7 +10,7 @@
         input, button { padding: 12px; margin: 5px; border-radius: 8px; border: none; }
         input { background: #21262d; color: white; }
         button { background: #4CAF50; color: white; cursor: pointer; }
-        .config { background: #161b22; padding: 15px; margin: 10px 0; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+        .config { background: #161b22; padding: 15px; margin: 10px 0; border-radius: 8px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -22,11 +22,8 @@
     <div id="panel" style="display:none;">
         <h3>Добавить друга</h3>
         <input id="name" placeholder="Имя друга">
-        <button onclick="addClient()">Создать конфиг</button>
+        <button onclick="addClient()">Создать ключ</button>
         <div id="result"></div>
-        
-        <h3>Друзья</h3>
-        <div id="clients"></div>
     </div>
     
     <script>
@@ -44,7 +41,7 @@
             if (data.config) {
                 document.getElementById('result').innerHTML = '<div class="config">' + data.config + '</div><button onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent)">Копировать</button>';
             } else {
-                document.getElementById('result').textContent = 'Ошибка: ' + (data.error || '');
+                document.getElementById('result').textContent = 'Ошибка';
             }
         }
     </script>

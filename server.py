@@ -1,26 +1,7 @@
-import os, subprocess, json
+import os, json, subprocess
 from flask import Flask, request, send_from_directory
 
 app = Flask(__name__)
-
-# Генерируем ключи сервера при старте
-if not os.path.exists("/etc/wireguard/privatekey"):
-    subprocess.run("wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey", shell=True)
-
-SERVER_PRIVKEY = open("/etc/wireguard/privatekey").read().strip()
-SERVER_PUBKEY = open("/etc/wireguard/publickey").read().strip()
-
-# Создаём wg0.conf
-wg_conf = f"""[Interface]
-PrivateKey = {SERVER_PRIVKEY}
-Address = 10.0.0.1/24
-ListenPort = 51820
-
-"""
-with open("/etc/wireguard/wg0.conf", "w") as f:
-    f.write(wg_conf)
-
-os.system("wg-quick up wg0")
 
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "habvpn2025")
 CLIENTS_FILE = "clients.json"
@@ -48,27 +29,15 @@ def add_client():
     if password != ADMIN_PASS:
         return {'error': 'wrong password'}, 403
     
-    privkey = subprocess.run(["wg", "genkey"], capture_output=True, text=True).stdout.strip()
-    pubkey = subprocess.run(["wg", "pubkey"], input=privkey, capture_output=True, text=True).stdout.strip()
+    port = 10000 + len(load_clients()) + 1
+    secret = subprocess.run(["openssl", "rand", "-base64", "16"], capture_output=True, text=True).stdout.strip()
+    method = "chacha20-ietf-poly1305"
     
     clients = load_clients()
-    clients[name] = {'pubkey': pubkey, 'privkey': privkey}
+    clients[name] = {'port': port, 'secret': secret, 'method': method}
     save_clients(clients)
     
-    # Добавляем клиента в WireGuard
-    os.system(f"wg set wg0 peer {pubkey} allowed-ips 10.0.0.{len(clients) + 1}/32")
-    
-    config = f"""[Interface]
-PrivateKey = {privkey}
-Address = 10.0.0.{len(clients) + 1}/24
-DNS = 1.1.1.1
-
-[Peer]
-PublicKey = {SERVER_PUBKEY}
-Endpoint = habvpn-server.onrender.com:51820
-AllowedIPs = 0.0.0.0/0
-PersistentKeepalive = 25
-"""
+    config = f"ss://{method}:{secret}@habvpn-server.onrender.com:{port}#HabVPN-{name}"
     
     return {'config': config, 'name': name}
 
